@@ -24,9 +24,9 @@ def register_view(request):
             messages.error(request, 'Username already taken.')
         else:
             user = User.objects.create_user(username=username, email=email, password=password)
-            login(request, user)
             messages.success(request, 'Account created. Welcome!')
-            return redirect('dashboard')
+            
+            return redirect('login')
 
     return render(request, 'ManageCash/register.html')
 
