@@ -42,7 +42,7 @@
         <td class="px-4 py-2">{{ e.type }}</td>
         <td class="px-4 py-2">{% if e.type == 'income' %}{{ e.source }} {{ e.description }}{% else %}{{ e.description }}{% endif %}</td>
         <td class="px-4 py-2 text-right">{{ e.amount }}</td>
-        <td class="px-4 py-2">{{ e.datetime|date:"Y-m-d" }}</td>
+        <td class="px-4 py-2">{{ e.datetime|date:"Y-m-d H:i" }}</td>
         <td class="px-4 py-2 text-center space-x-2">
           {% if e.type == 'income' %}
             <a href="{% url 'edit_cash' e.id %}" class="text-blue-600 hover:text-blue-900 text-sm font-medium">Edit</a>
