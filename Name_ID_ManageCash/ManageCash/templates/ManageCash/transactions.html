@@ -9,6 +9,7 @@
         <th class="px-4 py-2 text-left text-sm text-gray-600">Description</th>
         <th class="px-4 py-2 text-right text-sm text-gray-600">Amount</th>
         <th class="px-4 py-2 text-left text-sm text-gray-600">Date</th>
+        <th class="px-4 py-2 text-center text-sm text-gray-600">Actions</th>
       </tr>
     </thead>
     <tbody class="divide-y">
@@ -17,10 +18,19 @@
         <td class="px-4 py-2">{{ it.type }}</td>
         <td class="px-4 py-2">{% if it.type == 'income' %}{{ it.source }} {{ it.description }}{% else %}{{ it.description }}{% endif %}</td>
         <td class="px-4 py-2 text-right">{{ it.amount }}</td>
-        <td class="px-4 py-2">{{ it.datetime }}</td>
+        <td class="px-4 py-2">{{ it.datetime|date:"Y-m-d" }}</td>
+        <td class="px-4 py-2 text-center space-x-2">
+          {% if it.type == 'income' %}
+            <a href="{% url 'edit_cash' it.id %}" class="text-blue-600 hover:text-blue-900 text-sm font-medium">Edit</a>
+            <a href="{% url 'delete_cash' it.id %}" class="text-red-600 hover:text-red-900 text-sm font-medium">Delete</a>
+          {% else %}
+            <a href="{% url 'edit_expense' it.id %}" class="text-blue-600 hover:text-blue-900 text-sm font-medium">Edit</a>
+            <a href="{% url 'delete_expense' it.id %}" class="text-red-600 hover:text-red-900 text-sm font-medium">Delete</a>
+          {% endif %}
+        </td>
       </tr>
       {% empty %}
-      <tr><td class="px-4 py-2" colspan="4">No transactions yet.</td></tr>
+      <tr><td class="px-4 py-2" colspan="5">No transactions yet.</td></tr>
       {% endfor %}
     </tbody>
   </table>

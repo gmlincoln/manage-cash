@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -81,9 +81,9 @@ def dashboard(request):
     # Build unified recent transactions list
     entries = []
     for c in AddCash.objects.filter(user=user).order_by('-datetime')[:10]:
-        entries.append({'type': 'income', 'amount': c.amount, 'source': c.source, 'description': c.description or '', 'datetime': c.datetime})
+        entries.append({'id': c.id, 'type': 'income', 'amount': c.amount, 'source': c.source, 'description': c.description or '', 'datetime': c.datetime})
     for e in Expense.objects.filter(user=user).order_by('-datetime')[:10]:
-        entries.append({'type': 'expense', 'amount': e.amount, 'description': e.description, 'datetime': e.datetime})
+        entries.append({'id': e.id, 'type': 'expense', 'amount': e.amount, 'description': e.description, 'datetime': e.datetime})
     entries = sorted(entries, key=lambda x: x['datetime'], reverse=True)[:10]
 
     return render(request, 'ManageCash/dashboard.html', {'total_cash': total_cash, 'total_expense': total_expense, 'balance': balance, 'entries': entries})
@@ -157,8 +157,79 @@ def transactions(request):
     user = request.user
     items = []
     for c in AddCash.objects.filter(user=user).order_by('-datetime'):
-        items.append({'type': 'income', 'amount': c.amount, 'source': c.source, 'description': c.description or '', 'datetime': c.datetime})
+        items.append({'id': c.id, 'type': 'income', 'amount': c.amount, 'source': c.source, 'description': c.description or '', 'datetime': c.datetime})
     for e in Expense.objects.filter(user=user).order_by('-datetime'):
-        items.append({'type': 'expense', 'amount': e.amount, 'description': e.description, 'datetime': e.datetime})
+        items.append({'id': e.id, 'type': 'expense', 'amount': e.amount, 'description': e.description, 'datetime': e.datetime})
     items = sorted(items, key=lambda x: x['datetime'], reverse=True)
     return render(request, 'ManageCash/transactions.html', {'items': items})
+
+
+@login_required
+def edit_cash(request, pk):
+    cash = get_object_or_404(AddCash, pk=pk, user=request.user)
+    if request.method == 'POST':
+        source = request.POST.get('source', '').strip()
+        amount_raw = request.POST.get('amount', '').strip()
+        description = request.POST.get('description', '').strip()
+
+        if not source or not amount_raw:
+            messages.error(request, 'Source and amount are required.')
+        else:
+            try:
+                amount = Decimal(amount_raw)
+            except InvalidOperation:
+                messages.error(request, 'Invalid amount format.')
+            else:
+                cash.source = source
+                cash.amount = amount
+                cash.description = description
+                cash.save()
+                messages.success(request, 'Cash entry updated successfully.')
+                return redirect('dashboard')
+
+    return render(request, 'ManageCash/edit_cash.html', {'cash': cash})
+
+
+@login_required
+def edit_expense(request, pk):
+    expense = get_object_or_404(Expense, pk=pk, user=request.user)
+    if request.method == 'POST':
+        description = request.POST.get('description', '').strip()
+        amount_raw = request.POST.get('amount', '').strip()
+
+        if not description or not amount_raw:
+            messages.error(request, 'Description and amount are required.')
+        else:
+            try:
+                amount = Decimal(amount_raw)
+            except InvalidOperation:
+                messages.error(request, 'Invalid amount format.')
+            else:
+                expense.description = description
+                expense.amount = amount
+                expense.save()
+                messages.success(request, 'Expense entry updated successfully.')
+                return redirect('dashboard')
+
+    return render(request, 'ManageCash/edit_expense.html', {'expense': expense})
+
+
+@login_required
+def delete_cash(request, pk):
+    cash = get_object_or_404(AddCash, pk=pk, user=request.user)
+    if request.method == 'POST' or request.GET.get('confirm') == 'yes':
+        cash.delete()
+        messages.success(request, 'Cash entry deleted successfully.')
+        return redirect('dashboard')
+    return render(request, 'ManageCash/delete_confirm.html', {'item': cash, 'type': 'income'})
+
+
+@login_required
+def delete_expense(request, pk):
+    expense = get_object_or_404(Expense, pk=pk, user=request.user)
+    if request.method == 'POST' or request.GET.get('confirm') == 'yes':
+        expense.delete()
+        messages.success(request, 'Expense entry deleted successfully.')
+        return redirect('dashboard')
+    return render(request, 'ManageCash/delete_confirm.html', {'item': expense, 'type': 'expense'})
+
